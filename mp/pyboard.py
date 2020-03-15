@@ -36,24 +36,20 @@ class Pyboard:
 
     def read_until(self, min_num_bytes, ending, timeout=10, data_consumer=None):
 
-        data = self.con.read(min_num_bytes)
+        to_read = max(min_num_bytes, len(ending))
+        data = self.con.read(to_read)
         if data_consumer:
             data_consumer(data)
-        timeout_count = 0
+        time_start = time.monotonic()
         while True:
             if data.endswith(ending):
                 break
-            elif self.con.inWaiting() > 0:
-                new_data = self.con.read(1)
-                data = data + new_data
-                if data_consumer:
-                    data_consumer(new_data)
-                timeout_count = 0
-            else:
-                timeout_count += 1
-                if timeout is not None and timeout_count >= 100 * timeout:
-                    break
-                time.sleep(0.01)
+            new_data = self.con.read(1)
+            data = data + new_data
+            if data_consumer:
+                data_consumer(new_data)
+            if time.monotonic() - time_start > timeout:
+                break
         return data
 
     def enter_raw_repl(self):
@@ -151,7 +147,7 @@ class Pyboard:
     def exec_(self, command):
         ret, ret_err = self.exec_raw(command)
         if ret_err:
-            raise PyboardError("exception", ret, ret_err)
+             raise PyboardError("exception", ret, ret_err)
         return ret
 
     def execfile(self, filename):
