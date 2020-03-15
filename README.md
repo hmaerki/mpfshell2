@@ -6,6 +6,8 @@ MicropythonShell allows sync a local directory with the pyboard.
 
 This is very timeefficient, so development is not disrupted.
 
+[![PyPI version](https://badge.fury.io/py/mpfshell2.svg)](https://badge.fury.io/py/mpfshell2)
+
 ==============================================
 
 [![](https://www.codeshelter.co/static/badges/badge-plastic.9800c3f706ba.svg)](https://www.codeshelter.co/)
