@@ -131,9 +131,9 @@ class MicropythonShell:
       if (len(files_to_delete) > 0) and (len(files_to_download) > 0):
         print(f'  Transmission error files_to_delete={files_to_delete}, file_to_download={file_to_download}')
 
-  def repl(self, args=None):
+  def repl(self, start_main=False, args=None):
     assert self.is_connected
-    self.MpFileShell.do_repl(args=args)
+    self.MpFileShell.do_repl(start_main=start_main, args=args)
 
   def close(self):
     assert self.is_connected

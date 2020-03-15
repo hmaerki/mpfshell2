@@ -581,7 +581,7 @@ class MpFileShell(cmd.Cmd):
             except PyboardError as e:
                 self.__error(str(e))
 
-    def do_repl(self, args):
+    def do_repl(self, args=[], start_main=False):
         """repl
         Enter Micropython REPL.
         """
@@ -624,6 +624,10 @@ class MpFileShell(cmd.Cmd):
                 print("\n*** Exit REPL with Ctrl+Q ***")
             else:
                 print("\n*** Exit REPL with Ctrl+] ***")
+
+            if start_main:
+                print("Start 'main.py' (by sending <ctrl-D>)")
+                self.repl.serial.write(b'\x04')
 
             try:
                 self.repl.join(True)
