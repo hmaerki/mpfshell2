@@ -1,4 +1,12 @@
-# mpfshell
+# mpfshell2
+
+## mpfshell2: mpfshell with MicropythonShell-extension.
+
+MicropythonShell allows sync a local directory with the pyboard.
+
+This is very timeefficient, so development is not disrupted.
+
+==============================================
 
 [![](https://www.codeshelter.co/static/badges/badge-plastic.9800c3f706ba.svg)](https://www.codeshelter.co/)
 
