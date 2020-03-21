@@ -67,7 +67,12 @@ class MicropythonShell:
 
   def soft_reset(self):
     assert self.is_connected
+
     self.MpFileExplorer.con.write(b"\x04")  # ctrl-D: soft reset
+    data = self.MpFileExplorer.read_until(1, b"soft reboot\r\n")
+    if data.endswith(b"soft reboot\r\n"):
+      return
+    raise Exception("could not do soft reset")
 
   def machine_reset(self):
     assert self.is_connected
@@ -93,7 +98,7 @@ class MicropythonShell:
     files = eval(files)
     return files
 
-  def __do_folder_diff(self, directory_local):
+  def __do_folder_diff(self, directory_local, FILES_TO_SKIP):
     '''
     Compare the remote and local directory listing, compare the sha256.
     '''
@@ -107,6 +112,8 @@ class MicropythonShell:
       # print(f'  {sha256_remote}: {filename_remote}')
       filename_local = pathlib.Path(directory_local).joinpath(filename_remote)
       if not filename_local.exists():
+        if filename_remote in FILES_TO_SKIP:
+          continue
         files_to_delete.add(filename_remote)
         continue
       sha256_local = self.__get_hash_local(filename_local)
@@ -129,7 +136,7 @@ class MicropythonShell:
       print(f'Directory "{directory_local}" does not exist and will not be replicated!')
       return
 
-    files_to_delete, files_to_download = self.__do_folder_diff(directory_local)
+    files_to_delete, files_to_download = self.__do_folder_diff(directory_local, FILES_TO_SKIP)
     
     for file_to_download in files_to_download:
       filename_local = f'{directory_local}/{file_to_download}'
@@ -137,18 +144,19 @@ class MicropythonShell:
       self.MpFileExplorer.put(src=filename_local, dst=file_to_download)
     
     for file_to_delete in files_to_delete:
-      if file_to_delete in FILES_TO_SKIP:
-        continue
       print(f'  delete {file_to_delete}')
       self.MpFileExplorer.rm(file_to_delete)
 
-    if (len(files_to_delete) > 0) and (len(files_to_download) > 0):
-      print(f'  soft reset (filessystem was touched, modules must be reloaded)')
-      self.soft_reset()
+    if (len(files_to_delete) == 0) and (len(files_to_download) == 0):
+      print(f'  Directory "{directory_local}": already synchronized')
+      return
 
-      files_to_delete, files_to_download = self.__do_folder_diff(directory_local)
-      if (len(files_to_delete) > 0) and (len(files_to_download) > 0):
-        print(f'  Transmission error files_to_delete={files_to_delete}, file_to_download={file_to_download}')
+    print(f'  soft reset (filessystem was touched, modules must be reloaded)')
+    self.soft_reset()
+
+    files_to_delete, files_to_download = self.__do_folder_diff(directory_local, FILES_TO_SKIP)
+    if (len(files_to_delete) > 0) or (len(files_to_download) > 0):
+      print(f'  Transmission error! files_to_delete={files_to_delete}, files_to_download={files_to_download}')
 
   def repl(self, start_main=False, args=None):
     assert self.is_connected
@@ -171,6 +179,12 @@ def main():
     parser.add_argument(
         "port", help="specify serial port, for example COM12", nargs="?", action="store", default=None
     )
+    parser.add_argument(
+        "--no_main",
+        help="does not run 'main.py' (it may be started later by pressing <ctrl-D>)",
+        action="store_true",
+        default=False,
+    )
 
     args = parser.parse_args()
 
@@ -186,7 +200,7 @@ def main():
 
     r = MicropythonShell(str_port=args.port)
     r.sync_folder(directory_local='micropython')
-    r.repl()
+    r.repl(start_main=not args.no_main)
     r.close()
 
 def test():

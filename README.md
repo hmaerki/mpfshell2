@@ -20,6 +20,8 @@ positional arguments:
 optional arguments:
   -h, --help           show this help message and exit
   --loglevel LOGLEVEL  loglevel (CRITICAL, ERROR, WARNING, INFO, DEBUG)
+  --no_main            does not run 'main.py' (it may be started later by
+                       pressing <ctrl-D>)
 
 C:\>pyboard
 Found COM8
@@ -28,6 +30,13 @@ Directory "micropython" does not exist and will not be replicated!
 >
 *** Exit REPL with Ctrl+Q ***
 
+MicroPython v1.9.4-85-gdf9b7e8f on 2018-05-24; PYBv1.1 with STM32F405RG
+Type "help()" for more information.
+>>> Start 'main.py' (by sending <ctrl-D>)
+
+PYB: sync filesystems
+PYB: soft reboot
+************************* main.py starts
 MicroPython v1.9.4-85-gdf9b7e8f on 2018-05-24; PYBv1.1 with STM32F405RG
 Type "help()" for more information.
 >>>
