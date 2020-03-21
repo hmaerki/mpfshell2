@@ -6,6 +6,35 @@ MicropythonShell allows sync a local directory with the pyboard.
 
 This is very timeefficient, so development is not disrupted.
 
+## Command-line: `byboard`
+
+Sample session
+
+```bash
+C:\>pyboard --help
+usage: pyboard [-h] [--loglevel LOGLEVEL] [port]
+
+positional arguments:
+  port                 specify serial port, for example COM12
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --loglevel LOGLEVEL  loglevel (CRITICAL, ERROR, WARNING, INFO, DEBUG)
+
+C:\>pyboard
+Found COM8
+Connected to pyboard
+Directory "micropython" does not exist and will not be replicated!
+>
+*** Exit REPL with Ctrl+Q ***
+
+MicroPython v1.9.4-85-gdf9b7e8f on 2018-05-24; PYBv1.1 with STM32F405RG
+Type "help()" for more information.
+>>>
+```
+
+If no serial port is given, a port will automatically selected. Only ports with VID=0xF055 and PID=0x9800 will be selected.
+
 [![PyPI version](https://badge.fury.io/py/mpfshell2.svg)](https://badge.fury.io/py/mpfshell2)
 
 ==============================================

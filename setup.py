@@ -16,5 +16,8 @@ setup(
     packages=["mp"],
     keywords=["micropython", "shell", "file transfer", "development"],
     classifiers=[],
-    entry_points={"console_scripts": ["mpfshell=mp.mpfshell:main"]},
+    entry_points={"console_scripts": [
+        "mpfshell=mp.mpfshell:main",
+        "pyboard=mp.micropythonshell:main",
+    ]},
 )

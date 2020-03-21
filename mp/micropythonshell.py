@@ -4,6 +4,8 @@ import sys
 import time
 import pathlib
 import hashlib
+import logging
+import argparse
 
 import mp
 import mp.mpfshell
@@ -16,11 +18,13 @@ class MicropythonShell:
     # Speed up file transfers
     mp.mpfshell.MpFileExplorer.BIN_CHUNK_SIZE = 512
 
-    if str_port is None:
+    if str_port is not None:
+      print(f'Using {str_port}')
+    else:
       str_port = MicropythonShell.get_first_port()
+      print(f'Found {str_port}')
     if re.match(r'^COM\d+$', str_port) is None:
       raise Exception('Expected a string like "COM5", but got "{}"'.format(str_port))
-    print(f'Using {str_port}')
     self.str_port = str_port
 
     self.__open()
@@ -28,6 +32,8 @@ class MicropythonShell:
   def __open(self):
     self.MpFileShell = mp.mpfshell.MpFileShell(color=False, caching=False, reset=False)
     self.MpFileShell.do_open(args=f'ser:{self.str_port}')
+    if not self.is_connected:
+      raise Exception(f'Failed to open "{self.str_port}"')
 
   @property
   def MpFileExplorer(self) -> mp.mpfshell.MpFileExplorer:
@@ -36,7 +42,13 @@ class MicropythonShell:
 
   @classmethod
   def get_first_port(cls):
+    def is_pyboard(port):
+      try:
+        return (port.vid == 0xF055) and (port.pid == 0x9800)
+      except AttributeError: # port.vid or port.pid not defined
+        return False
     list_ports = serial.tools.list_ports.comports()
+    list_ports = [port for port in list_ports if is_pyboard(port)]
     if len(list_ports) == 0:
       raise Exception('No serial interface found!')
     if len(list_ports) > 1:
@@ -85,8 +97,9 @@ class MicropythonShell:
     '''
     Compare the remote and local directory listing, compare the sha256.
     '''
+    assert isinstance(directory_local, pathlib.Path)
     files_to_delete = set()
-    files_to_download = set([f.name for f in pathlib.Path(directory_local).glob('*')])
+    files_to_download = set([f.name for f in directory_local.glob('*')])
 
     files = self.__up_listfiles_remote()
     for filename_remote, sha256_remote in files:
@@ -109,6 +122,12 @@ class MicropythonShell:
     Update the pyboard filesystem according to 'directory_local'.
     '''
     assert self.is_connected
+    if isinstance(directory_local, str):
+      directory_local = pathlib.Path(directory_local)
+
+    if not directory_local.exists():
+      print(f'Directory "{directory_local}" does not exist and will not be replicated!')
+      return
 
     files_to_delete, files_to_download = self.__do_folder_diff(directory_local)
     
@@ -139,7 +158,38 @@ class MicropythonShell:
     assert self.is_connected
     self.MpFileShell.do_close(args=None)
 
+
 def main():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--loglevel",
+        help="loglevel (CRITICAL, ERROR, WARNING, INFO, DEBUG)",
+        default="ERROR",
+    )
+    parser.add_argument(
+        "port", help="specify serial port, for example COM12", nargs="?", action="store", default=None
+    )
+
+    args = parser.parse_args()
+
+    format = "%(asctime)s\t%(levelname)s\t%(message)s"
+
+    logging.basicConfig(format=format, level=args.loglevel)
+
+    logging.info("Micropython File Shell v%s started" % mp.version.FULL)
+    logging.info(
+        "Running on Python %d.%d using PySerial %s"
+        % (sys.version_info[0], sys.version_info[1], serial.VERSION)
+    )
+
+    r = MicropythonShell(str_port=args.port)
+    r.sync_folder(directory_local='micropython')
+    r.repl()
+    r.close()
+
+def test():
   r = MicropythonShell()
   r.sync_folder(directory_local='micropython')
   r.soft_reset()
