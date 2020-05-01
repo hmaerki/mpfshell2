@@ -11,7 +11,7 @@ setup(
     author="Stefan Wendler, with extensions by Hans Maerki",
     author_email="sw@kaltpost.de, hans@maerki.com",
     url="https://github.com/hmaerki/mpfshell2",
-    download_url="https://github.com/hmaerki/mpfshell2/archive/0.9.1.tar.gz",
+    download_url=f"https://github.com/hmaerki/mpfshell2/archive/v{version.FULL}.zip",
     install_requires=["pyserial", "colorama", "websocket_client"],
     packages=["mp"],
     keywords=["micropython", "shell", "file transfer", "development"],
