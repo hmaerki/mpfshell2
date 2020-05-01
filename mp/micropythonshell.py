@@ -104,7 +104,7 @@ class MicropythonShell:
     '''
     assert isinstance(directory_local, pathlib.Path)
     files_to_delete = set()
-    files_to_download = set([f.name for f in directory_local.glob('*')])
+    files_to_download = set([f.name for f in directory_local.glob('*') if f.is_file()])
 
     files = self.__up_listfiles_remote()
     for filename_remote, sha256_remote in files:
@@ -112,6 +112,8 @@ class MicropythonShell:
       # print(f'  {sha256_remote}: {filename_remote}')
       filename_local = pathlib.Path(directory_local).joinpath(filename_remote)
       if not filename_local.exists():
+        if FILES_TO_SKIP is None:
+          continue
         if filename_remote in FILES_TO_SKIP:
           continue
         files_to_delete.add(filename_remote)
@@ -127,8 +129,11 @@ class MicropythonShell:
   def sync_folder(self, directory_local, FILES_TO_SKIP=('boot.py', 'pybcdc.inf', 'README.txt')):
     '''
     Update the pyboard filesystem according to 'directory_local'.
+    If FILES_TO_SKIP is a list, all these files will not be deleted.
+    If FILES_TO_SKIP is None, no files will be deleted at all.
     '''
     assert self.is_connected
+    assert isinstance(FILES_TO_SKIP, (list, type(None)))
     if isinstance(directory_local, str):
       directory_local = pathlib.Path(directory_local)
 

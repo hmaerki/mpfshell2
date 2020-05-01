@@ -133,7 +133,7 @@ class Pyboard:
         # check if we could exec command
         data = self.read_until(2, b"OK", timeout=0.5)
         if data != b"OK":
-            raise PyboardError("could not exec command")
+            raise PyboardError(f'Could not exec command "{command}". Instead of "OK" got "{data}"!')
 
     def exec_raw(self, command, timeout=10, data_consumer=None):
         self.exec_raw_no_follow(command)
