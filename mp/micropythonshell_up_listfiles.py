@@ -4,7 +4,7 @@ import uhashlib
 
 def up_listfiles():
   def sha256(filename):
-    JUNK=256
+    JUNK = 256
     sha = uhashlib.sha256()
     with open(filename, 'rb') as f:
       while True:

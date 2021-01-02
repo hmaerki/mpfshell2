@@ -19,5 +19,6 @@ setup(
     entry_points={"console_scripts": [
         "mpfshell=mp.mpfshell:main",
         "pyboard=mp.micropythonshell:main",
+        "pyboard_query=mp.pyboard_query:main",
     ]},
 )

@@ -6,6 +6,9 @@ MicropythonShell allows sync a local directory with the pyboard.
 
 This is very timeefficient, so development is not disrupted.
 
+There is a separate functionality allowing to query connected pyboards which is discribed [here](pyboard_query_readme.md).
+
+
 ## Command-line: `byboard`
 
 Sample session
