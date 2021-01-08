@@ -72,6 +72,8 @@ class BoardQueryBase:
             return True
         if self.select_pyserial_esp32(port):
             return True
+        if self.select_pyserial_espruino(port):
+            return True
         # This hardware is unknown
         return False
 
@@ -82,6 +84,11 @@ class BoardQueryBase:
     def select_pyserial_esp32(self, port):
         # The usb chip used for the esp32
         return (port.vid == 0x10C4) and (port.pid == 0xEA60)
+
+    def select_pyserial_espruino(self, port):
+        # The usb chip used for the espruino
+        # The sysname of 'espruino' is 'pyboard'.
+        return (port.vid == 0xF055) and (port.pid == 0x9800)
 
     def select_identification(self, identification):
         assert isinstance(identification, Identification)
