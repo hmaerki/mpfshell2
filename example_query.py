@@ -14,7 +14,7 @@ def example_B():
 
 def example_pyboard_firmwareupdate():
     anypyboard = pyboard_query.ConnectPyboard(hwtype=None)
-    anypyboard.systemexit_firmware_required(min='1.13')
+    anypyboard.systemexit_firmware_required(min='1.13', max='1.15')
 
 def main():
     pyboard_query.BoardQueryBase.print_all()

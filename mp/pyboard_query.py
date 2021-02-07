@@ -51,11 +51,23 @@ class Board:
         if self.mpfshell.is_connected:
             self.mpfshell.close()
 
-    def systemexit_firmware_required(self, min: str):
+    @property
+    def quickref(self):
+        'returns "scanner_pyb_2020(pyboard/COM8)"'
+        return f'{self.identification.HWTYPE}({self.micropython_sysname}/{self.port.name})'
+
+    def systemexit_firmware_required(self, min: str=None, max: str=None):
         'Raise a exception if firmware does not fit requirements'
-        fail = min > self.micropython_release
+        fail = False
+        text = self.micropython_release
+        if min is not None:
+            fail = fail or (min > self.micropython_release)
+            text = f'{min}<={text}'
+        if max is not None:
+            fail = fail or (max < self.micropython_release)
+            text = f'{text}<={max}'
         if fail:
-            raise SystemExit(f'ERROR: {self.micropython_sysname} on {self.port.name} requires firmware "{min}" but "{self.micropython_release}" is installed. To update see {URL_README}')
+            raise SystemExit(f'ERROR: {self.quickref} firmware {self.micropython_release} is installed, but {text} is required! To update see {URL_README}')
 
     def print(self, f=sys.stdout):
         print(f'    Board Query {self.port.name}', file=f)

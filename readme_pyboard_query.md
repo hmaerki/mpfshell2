@@ -155,7 +155,9 @@ This will print for example
 Board Query COM8
   pyserial.description: USB Serial Device (COM8)
   pyserial.hwid: USB VID:PID=F055:9800 SER=2078379C304E LOCATION=1-2.1:x.1
-  mpfshell.MpFileExplorer.sysname: pyboard
+    mpfshell.micropython_sysname: pyboard
+    mpfshell.micropython_release: 1.10.0
+    mpfshell.micropython_machine: PYBv1.1 with STM32F405RG
   config_identification.py.FILENAME: config_identification.py
   config_identification.py.FILECONTENT:
        #

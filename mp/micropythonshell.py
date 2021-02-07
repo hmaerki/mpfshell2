@@ -150,7 +150,7 @@ class MicropythonShell:
         
         for file_to_download in files_to_download:
             filename_local = f'{directory_local}/{file_to_download}'
-            print(f'  downloading {filename_local}')
+            print(f'  downloading: {file_to_download}')
             self.MpFileExplorer.put(src=filename_local, dst=file_to_download)
         
         for file_to_delete in files_to_delete:

@@ -16,7 +16,7 @@ mpfshell2 simplify firmware updates for pyboards on windows.
 * Connect the DFU pin with the 3.3V pin (they're right next to each other).
 * Connect the pyboard to your computer via USB. The red, orange and red LED glow lowly.
 
-![DFU Pin](mp/firmware/images/pyboard11_DFU.jpg)
+![DFU Pin](mp/firmware/images/pybv10b-DFU_quick_ref.png)
 
 ## FAQ: Install USB driver for `STM32 BOOTLOADER`
 
