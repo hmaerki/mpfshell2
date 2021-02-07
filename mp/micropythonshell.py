@@ -9,13 +9,14 @@ import argparse
 
 import mp
 import mp.mpfshell
-import mp.pyboard_query
 import serial.tools.list_ports
 
 
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).absolute().parent
 
-FILES_TO_SKIP=('boot.py', 'pybcdc.inf', 'README.txt', mp.pyboard_query.FILENAME_IDENTIFICATION)
+FILENAME_IDENTIFICATION = 'config_identification.py'
+
+FILES_TO_SKIP=('boot.py', 'pybcdc.inf', 'README.txt', FILENAME_IDENTIFICATION)
 
 class MicropythonShell:
     def __init__(self, str_port=None):

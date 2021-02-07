@@ -13,12 +13,15 @@ setup(
     url="https://github.com/hmaerki/mpfshell2",
     download_url=f"https://github.com/hmaerki/mpfshell2/archive/v{version.FULL}.zip",
     install_requires=["pyserial", "colorama", "websocket_client"],
-    packages=["mp"],
+    packages=["mp", "mp.firmware"],
+    package_data={"mp": ["firmware/*.dfu"]},
     keywords=["micropython", "shell", "file transfer", "development"],
     classifiers=[],
     entry_points={"console_scripts": [
         "mpfshell=mp.mpfshell:main",
         "pyboard=mp.micropythonshell:main",
         "pyboard_query=mp.pyboard_query:main",
+        "pyboard_pydfu=mp.firmware.pydfu:main",
+        "pyboard_update=mp.firmware.update:main",
     ]},
 )

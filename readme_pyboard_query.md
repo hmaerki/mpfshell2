@@ -32,7 +32,9 @@ Sample output
     Board Query COM8
       pyserial.description: USB Serial Device (COM8)
       pyserial.hwid: USB VID:PID=F055:9800 SER=2078379C304E LOCATION=1-2.1:x.1
-      mpfshell.MpFileExplorer.sysname: pyboard
+      mpfshell.micropython_sysname: pyboard
+      mpfshell.micropython_release: 1.10.0
+      mpfshell.micropython_machine: PYBv1.1 with STM32F405RG
       config_identification.py.FILENAME: config_identification.py
       config_identification.py.FILECONTENT:
            #
@@ -53,7 +55,9 @@ Sample output
     Board Query COM10
       pyserial.description: Silicon Labs CP210x USB to UART Bridge (COM10)
       pyserial.hwid: USB VID:PID=10C4:EA60 SER=9072266AC599E8118237B558C3E5CFBD LOCATION=1-3:x.1
-      mpfshell.MpFileExplorer.sysname: esp32
+      mpfshell.micropython_sysname: esp32
+      mpfshell.micropython_release: 1.10.0
+      mpfshell.micropython_machine: ESP32 module with ESP32
       config_identification.py.FILENAME: config_identification.py
       config_identification.py.READ_ERROR: Failed to read file: config_identification.py
 ```

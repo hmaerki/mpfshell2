@@ -6,7 +6,20 @@ MicropythonShell allows sync a local directory with the pyboard.
 
 This is very timeefficient, so development is not disrupted.
 
-There is a separate functionality allowing to query connected pyboards which is discribed [here](pyboard_query_readme.md).
+This functionality has been added:
+
+ * A query for the connected pyboards. See [readme_pyboard_query.md](readme_pyboard_query.md).
+ * A update for the pyboards. See [readme_firmware_update.md](readme_firmware_update.md).
+
+## Installation
+
+Via pypi
+
+`pip install --upgrade mpfshell2`
+
+Directly from Github
+
+`pip install --upgrade --no-deps git+https://github.com/hmaerki/mpfshell2`
 
 
 ## Command-line: `byboard`

@@ -6,8 +6,9 @@ import serial
 import mp
 import mp.micropythonshell
 from mp.mpfshell import RemoteIOError
+from mp.firmware.update import URL_README
 
-FILENAME_IDENTIFICATION = 'config_identification.py'
+FILENAME_IDENTIFICATION = mp.micropythonshell.FILENAME_IDENTIFICATION
 
 @dataclasses.dataclass
 class Identification:
@@ -40,12 +41,21 @@ class Board:
         self.port = port
         self.mpfshell = mpfshell
         self.identification = identification
+        self.micropython_sysname = self.mpfshell.MpFileExplorer.sysname
+        self.micropython_release = self.mpfshell.MpFileExplorer.eval("uos.uname().release").decode("utf-8")
+        self.micropython_machine = self.mpfshell.MpFileExplorer.eval("uos.uname().machine").decode("utf-8")
 
     def close(self):
         if isinstance(self.mpfshell, str):
             return
         if self.mpfshell.is_connected:
             self.mpfshell.close()
+
+    def systemexit_firmware_required(self, min: str):
+        'Raise a exception if firmware does not fit requirements'
+        fail = min > self.micropython_release
+        if fail:
+            raise SystemExit(f'ERROR: {self.micropython_sysname} on {self.port.name} requires firmware "{min}" but "{self.micropython_release}" is installed. To update see {URL_README}')
 
     def print(self, f=sys.stdout):
         print(f'    Board Query {self.port.name}', file=f)
@@ -54,7 +64,9 @@ class Board:
         if isinstance(self.mpfshell, str):
             print(f'      mpfshell-error: {self.mpfshell}', file=f)
         else:
-            print(f'      mpfshell.MpFileExplorer.sysname: {self.mpfshell.MpFileExplorer.sysname}', file=f)
+            print(f'      mpfshell.micropython_sysname: {self.micropython_sysname}', file=f)
+            print(f'      mpfshell.micropython_release: {self.micropython_release}', file=f)
+            print(f'      mpfshell.micropython_machine: {self.micropython_machine}', file=f)
         self.identification.print(indent='      ', f=f)
 
 
@@ -179,6 +191,9 @@ class BoardQueryPyboard(BoardQueryBase):
 
     def select_identification(self, identification):
         assert isinstance(identification, Identification)
+        if self.hwtype is None:
+            # We want to select any pyboard
+            return True
         return identification.HWTYPE == self.hwtype
 
 
