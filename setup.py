@@ -12,7 +12,7 @@ setup(
     author_email="sw@kaltpost.de, hans@maerki.com",
     url="https://github.com/hmaerki/mpfshell2",
     download_url=f"https://github.com/hmaerki/mpfshell2/archive/v{version.FULL}.zip",
-    install_requires=["pyserial", "colorama", "websocket_client"],
+    install_requires=["pyusb>=1.1.1", "pyusb>=1.1.1", "colorama", "websocket_client"],
     packages=["mp", "mp.firmware"],
     package_data={"mp": ["firmware/*.dfu"]},
     keywords=["micropython", "shell", "file transfer", "development"],
