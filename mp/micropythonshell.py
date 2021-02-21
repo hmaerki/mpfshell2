@@ -68,7 +68,7 @@ class MicropythonShell:
 
     @property
     def is_connected(self):
-        return self.MpFileExplorer is not None
+        return self.MpFileShell is not None
 
     def soft_reset(self):
         assert self.is_connected
@@ -173,12 +173,13 @@ class MicropythonShell:
         self.MpFileShell.do_repl(start_main=start_main, args=args)
 
     def close(self):
-        assert self.is_connected
+        if not self.is_connected:
+            return
         self.MpFileShell.do_close(args=None)
+        self.MpFileShell = None
 
 
 def main():
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument(

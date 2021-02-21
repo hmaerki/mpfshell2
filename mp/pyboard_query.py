@@ -35,7 +35,7 @@ class Identification:
 class Board:
     def __init__(self, port, mpfshell, identification):
         assert isinstance(port, serial.tools.list_ports_common.ListPortInfo)
-        assert isinstance(mpfshell, (str, mp.micropythonshell.MicropythonShell))
+        assert isinstance(mpfshell, mp.micropythonshell.MicropythonShell)
         assert isinstance(identification, Identification)
 
         self.port = port
@@ -48,8 +48,7 @@ class Board:
     def close(self):
         if isinstance(self.mpfshell, str):
             return
-        if self.mpfshell.is_connected:
-            self.mpfshell.close()
+        self.mpfshell.close()
 
     @property
     def quickref(self):
@@ -118,6 +117,10 @@ class BoardQueryBase:
         assert isinstance(identification, Identification)
         return True
 
+    @property
+    def identification(self):
+        raise Exception('Programming error: Please override')
+
     @classmethod
     def read_identification(cls, mpfshell):
         if isinstance(mpfshell, str):
@@ -162,6 +165,10 @@ class BoardQueryBase:
         boards = []
         try:
             for port, mpfshell in cls.iter_mpshell(query):
+                if isinstance(mpfshell, str):
+                    # This indicates that the port could not be opened and 'mpfshell' contains the error text.
+                    print(f'*** {port}: {mpfshell}', file=f)
+                    continue
                 identification = cls.read_identification(mpfshell)
                 board = Board(port, mpfshell, identification)
                 boards.append(board)
@@ -174,19 +181,33 @@ class BoardQueryBase:
                 board.close()
 
     @classmethod
+    def get_identification(cls, queries):
+        for q in queries:
+            assert isinstance(q, BoardQueryBase)
+            assert isinstance(q.identification, str)
+
+        return ', '.join([q.identification for q in queries])
+
+    @classmethod
     def connect(cls, queries):
         assert isinstance(queries, list)
+        assert isinstance(cls.get_identification(queries), str)
         queries = queries.copy()
+        queries_success = []
         for port, mpfshell in cls.iter_mpshell(queries[0]):
             identification = cls.read_identification(mpfshell)
             for query in queries:
                 if query.select_identification(identification):
                     query.board = Board(port, mpfshell, identification)
                     queries.remove(query)
+                    queries_success.append(query)
             if len(queries) == 0:
                 # All micropython boards found
                 return True
         # board not found
+        # free allocated com-interfaces
+        for query_success in queries_success:
+            query_success.board.close()
         return False
 
 
@@ -208,6 +229,9 @@ class BoardQueryPyboard(BoardQueryBase):
             return True
         return identification.HWTYPE == self.hwtype
 
+    @property
+    def identification(self):
+        return f'pyboard(HWTYPE={self.hwtype})'
 
 class BoardQueryComport(BoardQueryBase):
     '''
@@ -220,11 +244,15 @@ class BoardQueryComport(BoardQueryBase):
     def select_pyserial(self, port):
         return port.name.lower() == self.comport.lower()
 
+    @property
+    def identification(self):
+        return f'(COM={self.comport})'
+
 
 def Connect(list_queries):
     found = BoardQueryBase.connect(list_queries)
     if not found:
-        msg = f'Pyboards not found!'
+        msg = f'Pyboards not found! Query={BoardQueryBase.get_identification(list_queries)}'
         print(f'ERROR: {msg}')
         BoardQueryBase.print_all()
         raise Exception(msg)
