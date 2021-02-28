@@ -68,6 +68,24 @@ class Board:
         if fail:
             raise SystemExit(f'ERROR: {self.quickref} firmware {self.micropython_release} is installed, but {text} is required! To update see {URL_README}')
 
+    def systemexit_hwtype_required(self, hwtype: str=None):
+        'Raise a exception if hardwaretype does not fit requirements'
+        if hwtype is not self.identification.HWTYPE:
+            raise SystemExit(f'ERROR: {self.quickref}: Expected "{hwtype}" but the connected board is of HWTYPE "{self.identification.HWTYPE}"!')
+
+    def systemexit_hwversion_required(self, min: str=None, max: str=None):
+        'Raise a exception if hwversion does not fit requirements'
+        fail = False
+        text = self.identification.HWVERSION
+        if min is not None:
+            fail = fail or (min > self.identification.HWVERSION)
+            text = f'{min}<={text}'
+        if max is not None:
+            fail = fail or (max < self.identification.HWVERSION)
+            text = f'{text}<={max}'
+        if fail:
+            raise SystemExit(f'ERROR: {self.quickref} hwversion "{self.identification.HWVERSION}" is connected, but {text} is required!')
+
     def print(self, f=sys.stdout):
         print(f'    Board Query {self.port.name}', file=f)
         print(f'      pyserial.description: {self.port.description}', file=f)
@@ -130,7 +148,10 @@ class BoardQueryBase:
         except RemoteIOError as e:
             return Identification(READ_ERROR=str(e), FILENAME=FILENAME_IDENTIFICATION)
         globals = {}
-        exec(source, globals)
+        try:
+            exec(source, globals)
+        except SyntaxError as e:
+            return Identification(READ_ERROR=str(e), FILENAME=FILENAME_IDENTIFICATION)
         # Only take keys in uppercase
         # identification = {key:value for key, value in globals.items() if key.isupper()}
         identification = Identification(FILENAME=FILENAME_IDENTIFICATION, FILECONTENT=source)
