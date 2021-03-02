@@ -144,7 +144,7 @@ class BoardQueryBase:
         if isinstance(mpfshell, str):
             return Identification(READ_ERROR=mpfshell, FILENAME=FILENAME_IDENTIFICATION)
         try:
-            source = mpfshell.MpFileExplorer.gets(src=FILENAME_IDENTIFICATION)
+            source = mpfshell.MpFileExplorer.get(src=FILENAME_IDENTIFICATION)
         except RemoteIOError as e:
             return Identification(READ_ERROR=str(e), FILENAME=FILENAME_IDENTIFICATION)
         globals = {}
@@ -173,7 +173,7 @@ class BoardQueryBase:
         assert isinstance(query, BoardQueryBase)
         for port in cls.iter_pyserial(query):
             try:
-                mpfshell = mp.micropythonshell.MicropythonShell(str_port=port.name)
+                mpfshell = mp.micropythonshell.MicropythonShell(str_port=port.device)
             except Exception as e:
                 yield port, str(e)
                 continue
