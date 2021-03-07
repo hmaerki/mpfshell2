@@ -7,8 +7,14 @@ This modules allows find the required com port for example based on the expected
 In the following example, we expect, that a `scanner_pyb_2020` and a `compact_2020` are connected:
 
 ```python
-scanner = ConnectPyboard('scanner_pyb_2020')
-compact = ConnectPyboard('compact_2012')
+scanner = ConnectPyboard(hwtype='scanner_pyb_2020', product=Product.Pyboard)
+compact = ConnectPyboard(hwtype='compact_2012', product=Product.ANY)
+```
+
+When you know the serial port, you may use
+```python
+boardA = ConnectComport(comport='COM8', product=pyboard_query.Product.Pyboard)
+boardB = ConnectComport(comport=None, product=pyboard_query.Product.ANY)
 ```
 
 ## Query micropython boards

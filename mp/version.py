@@ -23,6 +23,6 @@
 ##
 
 
-FULL = '100.9.11'
+FULL = '100.9.12'
 
 MAJOR, MINOR, PATCH = FULL.split(".")

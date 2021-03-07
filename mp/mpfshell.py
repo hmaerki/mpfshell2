@@ -605,9 +605,10 @@ class MpFileShell(cmd.Cmd):
                 self.repl = Term(self.fe.con)
 
                 if platform.system() == "Windows":
-                    self.repl.exit_character = chr(0x11)
+                    self.repl.exit_character = chr(0x11) # ctrl-q
+                    self.repl.exit_character = chr(0x18) # ctrl-X
                 else:
-                    self.repl.exit_character = chr(0x1D)
+                    self.repl.exit_character = chr(0x1D) # ctrl-]
 
                 self.repl.raw = True
                 self.repl.set_rx_encoding("UTF-8")
@@ -620,10 +621,8 @@ class MpFileShell(cmd.Cmd):
             self.fe.teardown()
             self.repl.start()
 
-            if self.repl.exit_character == chr(0x11):
-                print("\n*** Exit REPL with Ctrl+Q ***")
-            else:
-                print("\n*** Exit REPL with Ctrl+] ***")
+            ctrl_char = {chr(0x11): 'Q', chr(0x18): 'X'}.get(self.repl.exit_character, ']')
+            print(f"\n*** Exit REPL with Ctrl+{ctrl_char} ***")
 
             if start_main:
                 print("Start 'main.py' (by sending <ctrl-D>)")

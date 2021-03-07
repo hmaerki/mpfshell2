@@ -1,4 +1,5 @@
 import sys
+from enum import Enum
 import dataclasses
 
 import serial
@@ -9,6 +10,38 @@ from mp.mpfshell import RemoteIOError
 from mp.firmware.update import URL_README
 
 FILENAME_IDENTIFICATION = mp.micropythonshell.FILENAME_IDENTIFICATION
+
+@dataclasses.dataclass
+class ProductId:
+    vendorid: int
+    productid: int
+    name: str = None
+
+class Product(Enum):
+    ANY = None
+    Pyboard = ProductId(0xF055, 0x9800)
+    Espruino = ProductId(0xF055, 0x9800)
+    BlackPill = ProductId(0xF055, 0x9800)
+    Esp32 = ProductId(0x10C4, 0xEA60)
+    RaspberryPico = ProductId(0x2E8A, 0x0005)
+
+    def is_type(self, vendorid, productid):
+        return (self.value.vendorid == vendorid) and (self.value.productid == productid)
+
+    @classmethod
+    def all(cls):
+        return [product for product in cls if product != Product.ANY]
+
+    @classmethod
+    def find(cls, vendorid, productid):
+        for product in Product.all():
+            if product.is_type(vendorid, productid):
+                return product
+        return None
+
+
+for product in Product.all():
+    product.value.name = product.name
 
 @dataclasses.dataclass
 class Identification:
@@ -100,36 +133,20 @@ class Board:
 
 
 class BoardQueryBase:
-    # Names to compare in pyboard()
-    NAME_PYBOARD = 'pyboard'
-    NAME_ESP32 = 'esp32'
-
-    def __init__(self):
+    def __init__(self, product: Product):
+        assert isinstance(product, Product)
         self.board = None
+        self.product = product
 
     def select_pyserial(self, port):
         assert isinstance(port, serial.tools.list_ports_common.ListPortInfo)
-        if self.select_pyserial_pyboard(port):
+        if self.product is Product.ANY:
             return True
-        if self.select_pyserial_esp32(port):
-            return True
-        if self.select_pyserial_espruino(port):
-            return True
-        # This hardware is unknown
-        return False
-
-    def select_pyserial_pyboard(self, port):
-        # The usb chip used for the pyboard
-        return (port.vid == 0xF055) and (port.pid == 0x9800)
-
-    def select_pyserial_esp32(self, port):
-        # The usb chip used for the esp32
-        return (port.vid == 0x10C4) and (port.pid == 0xEA60)
-
-    def select_pyserial_espruino(self, port):
-        # The usb chip used for the espruino
-        # The sysname of 'espruino' is 'pyboard'.
-        return (port.vid == 0xF055) and (port.pid == 0x9800)
+        product = Product.find(port.vid, port.pid)
+        if product is None:
+            # This hardware is unknown
+            return False
+        return product == self.product
 
     def select_identification(self, identification):
         assert isinstance(identification, Identification)
@@ -144,7 +161,7 @@ class BoardQueryBase:
         if isinstance(mpfshell, str):
             return Identification(READ_ERROR=mpfshell, FILENAME=FILENAME_IDENTIFICATION)
         try:
-            source = mpfshell.MpFileExplorer.get(src=FILENAME_IDENTIFICATION)
+            source = mpfshell.MpFileExplorer.gets(src=FILENAME_IDENTIFICATION)
         except RemoteIOError as e:
             return Identification(READ_ERROR=str(e), FILENAME=FILENAME_IDENTIFICATION)
         globals = {}
@@ -182,7 +199,7 @@ class BoardQueryBase:
     @classmethod
     def print_all(cls, f=sys.stdout):
         print('*** Board Query: scan', file=f)
-        query = BoardQueryBase()
+        query = BoardQueryBase(Product.ANY)
         boards = []
         try:
             for port, mpfshell in cls.iter_mpshell(query):
@@ -216,6 +233,9 @@ class BoardQueryBase:
         queries = queries.copy()
         queries_success = []
         for port, mpfshell in cls.iter_mpshell(queries[0]):
+            if isinstance(mpfshell, str):
+                # A error message
+                continue
             identification = cls.read_identification(mpfshell)
             for query in queries:
                 if query.select_identification(identification):
@@ -234,14 +254,15 @@ class BoardQueryBase:
 
 class BoardQueryPyboard(BoardQueryBase):
     '''
-    Selects pyboards with a 'config_identification.py' of given 'hwtype'
+    Selects pyboards with a 'config_identification.py' of given 'hwtype'.
+    Selects any board if hwtype is None
     '''
-    def __init__(self, hwtype):
-        super().__init__()
+    def __init__(self, hwtype: str=None, product: Product = Product.ANY):
+        super().__init__(product=product)
         self.hwtype = hwtype
 
     def select_pyserial(self, port):
-        return self.select_pyserial_pyboard(port)
+        return super().select_pyserial(port)
 
     def select_identification(self, identification):
         assert isinstance(identification, Identification)
@@ -256,14 +277,20 @@ class BoardQueryPyboard(BoardQueryBase):
 
 class BoardQueryComport(BoardQueryBase):
     '''
-    Selects pyboards with a 'config_identification.py' of given 'hwtype'
+    Selects pyboards with a 'comport'.
+    Selects first comport if comport is None.
     '''
-    def __init__(self, comport):
-        super().__init__()
+    def __init__(self, comport: str=None, product: Product=Product.ANY):
+        super().__init__(product)
         self.comport = comport
 
     def select_pyserial(self, port):
-        return port.name.lower() == self.comport.lower()
+        if not super().select_pyserial(port):
+            return False
+        if self.comport is None:
+            # Pick the first port
+            return True
+        return port.device.lower() == self.comport.lower()
 
     @property
     def identification(self):
@@ -279,8 +306,8 @@ def Connect(list_queries):
         raise Exception(msg)
 
 
-def ConnectPyboard(hwtype):
-    query = BoardQueryPyboard(hwtype)
+def ConnectPyboard(hwtype=None, product: Product=Product.ANY):
+    query = BoardQueryPyboard(hwtype, product=product)
     found = BoardQueryBase.connect([query])
     if not found:
         msg = f'Pyboard of HWTYPE={hwtype} not found!'
@@ -290,16 +317,15 @@ def ConnectPyboard(hwtype):
     return query.board
 
 
-def ConnectComport(comport):
-    query = BoardQueryComport(comport)
+def ConnectComport(comport: str=None, product: Product=Product.ANY):
+    query = BoardQueryComport(comport=comport, product=product)
     found = BoardQueryBase.connect([query])
     if not found:
-        msg = f'Pyboard with {comport} not found!'
+        msg = f'Pyboard with comport "{comport}" and product "{product.name}" not found!'
         print(f'ERROR: {msg}')
         BoardQueryBase.print_all()
         raise Exception(msg)
     return query.board
-
 
 def example_A():
     _board = ConnectComport('COM9')

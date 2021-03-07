@@ -1,4 +1,3 @@
-import os
 import re
 import sys
 import time
@@ -36,9 +35,15 @@ class MicropythonShell:
 
     def __open(self):
         self.MpFileShell = mp.mpfshell.MpFileShell(color=False, caching=False, reset=False)
-        self.MpFileShell.do_open(args=f'ser:{self.str_port}')
-        if not self.is_connected:
+        success = self.MpFileShell.do_open(args=f'ser:{self.str_port}')
+        if not success:
             raise Exception(f'Failed to open "{self.str_port}"')
+        assert self.MpFileShell is not None
+        assert self.MpFileExplorer is not None
+
+    @property
+    def is_connected(self):
+        return self.MpFileExplorer is not None
 
     @property
     def MpFileExplorer(self) -> mp.mpfshell.MpFileExplorer:
@@ -49,7 +54,15 @@ class MicropythonShell:
     def get_first_port(cls):
         def is_pyboard(port):
             try:
-                return (port.vid == 0xF055) and (port.pid == 0x9800)
+                if (port.vid == 0xF055) and (port.pid == 0x9800):
+                    return True # pyboard
+                if (port.vid == 0x2E8A) and (port.pid == 0x0005):
+                    return True # Raspberry pico
+                if (port.vid == 0xF055) and (port.pid == 0x9800):
+                    return True # espruino
+                if (port.vid == 0x10C4) and (port.pid == 0xEA60):
+                    return True # esp32
+                return False
             except AttributeError: # port.vid or port.pid not defined
                 return False
         list_ports = serial.tools.list_ports.comports()
@@ -65,10 +78,6 @@ class MicropythonShell:
     def list_ports(cls, list_ports):
         for port in list_ports:
             print(f'  {port.device} pid=0x{port.pid:X} vid=0x{port.vid:X} description={port.description}')
-
-    @property
-    def is_connected(self):
-        return self.MpFileShell is not None
 
     def soft_reset(self):
         assert self.is_connected

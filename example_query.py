@@ -1,9 +1,9 @@
 from mp import pyboard_query
 
 def example_A():
-    _board = ConnectComport('COM9')
+    _board = pyboard_query.ConnectComport('COM9')
     # This call will list a 'connected' com port.
-    BoardQueryBase.print_all()
+    pyboard_query.BoardQueryBase.print_all()
 
 def example_B():
     print('start')
@@ -17,6 +17,11 @@ def example_pyboard_firmwareupdate():
     anypyboard.systemexit_firmware_required(min='1.13', max='1.15')
 
 def main():
+    anypyboard = pyboard_query.ConnectComport(comport=None, product=pyboard_query.Product.Pyboard)
+    anypyboard.close()
+    anypyboard = pyboard_query.ConnectPyboard(hwtype=None, product=pyboard_query.Product.Pyboard)
+    anypyboard.close()
+
     pyboard_query.BoardQueryBase.print_all()
     example_pyboard_firmwareupdate()
 
