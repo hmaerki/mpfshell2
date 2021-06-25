@@ -275,6 +275,33 @@ class BoardQueryPyboard(BoardQueryBase):
     def identification(self):
         return f'pyboard(HWTYPE={self.hwtype})'
 
+class BoardQueryHwtypeSerial(BoardQueryBase):
+    '''
+    Selects pyboards with a 'config_identification.py' of given 'hwtype' AND 'hwserial'.
+    'hwtype' and 'hwserial' may be None
+    '''
+    def __init__(self, hwtype: str=None, hwserial: str=None, product: Product=Product.ANY):
+        super().__init__(product=product)
+        self.hwtype = hwtype
+        self.hwserial = hwserial
+ 
+    def select_pyserial(self, port):
+        return super().select_pyserial(port)
+ 
+    def select_identification(self, identification):
+        assert isinstance(identification, Identification)
+        if self.hwtype is not None:
+            if identification.HWTYPE != self.hwtype:
+                return False
+        if self.hwserial is not None:
+            if identification.HWSERIAL != self.hwserial:
+                return False
+        return True
+ 
+    @property
+    def identification(self):
+        return f'pyboard(HWTYPE={self.hwtype}, HWSERIAL={self.hwserial})'
+
 class BoardQueryComport(BoardQueryBase):
     '''
     Selects pyboards with a 'comport'.
@@ -326,6 +353,18 @@ def ConnectComport(comport: str=None, product: Product=Product.ANY):
         BoardQueryBase.print_all()
         raise Exception(msg)
     return query.board
+
+
+def ConnectHwtypeSerial(hwtype: str=None, hwserial: str=None, product: Product=Product.ANY):
+    query = BoardQueryHwtypeSerial(product=product, hwtype=hwtype, hwserial=hwserial)
+    found = BoardQueryBase.connect([query])
+    if not found:
+        msg = f'{product} not found: {query.identification}'
+        print(f'ERROR: {msg}')
+        BoardQueryBase.print_all()
+        raise Exception(msg)
+    return query.board
+
 
 def example_A():
     _board = ConnectComport('COM9')
