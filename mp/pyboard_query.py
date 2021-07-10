@@ -11,6 +11,9 @@ from mp.firmware.update import URL_README
 
 FILENAME_IDENTIFICATION = mp.micropythonshell.FILENAME_IDENTIFICATION
 
+class BoardqueryException(Exception):
+    pass
+
 @dataclasses.dataclass
 class ProductId:
     vendorid: int
@@ -137,6 +140,7 @@ class BoardQueryBase:
         assert isinstance(product, Product)
         self.board = None
         self.product = product
+        self.matching_boards_found = 0
 
     def select_pyserial(self, port):
         assert isinstance(port, serial.tools.list_ports_common.ListPortInfo)
@@ -156,8 +160,8 @@ class BoardQueryBase:
     def identification(self):
         raise Exception('Programming error: Please override')
 
-    @classmethod
-    def read_identification(cls, mpfshell):
+    @staticmethod
+    def read_identification(mpfshell):
         if isinstance(mpfshell, str):
             return Identification(READ_ERROR=mpfshell, FILENAME=FILENAME_IDENTIFICATION)
         try:
@@ -178,36 +182,20 @@ class BoardQueryBase:
             setattr(identification, key, value)
         return identification
 
-    @classmethod
-    def iter_pyserial(cls, query):
-        assert isinstance(query, BoardQueryBase)
-        for port in serial.tools.list_ports.comports():
-            if query.select_pyserial(port):
-                yield port
 
-    @classmethod
-    def iter_mpshell(cls, query):
-        assert isinstance(query, BoardQueryBase)
-        for port in cls.iter_pyserial(query):
-            try:
-                mpfshell = mp.micropythonshell.MicropythonShell(str_port=port.device)
-            except Exception as e:
-                yield port, str(e)
-                continue
-            yield port, mpfshell
-
-    @classmethod
-    def print_all(cls, f=sys.stdout):
+    @staticmethod
+    def print_all(f=sys.stdout):
         print('*** Board Query: scan', file=f)
-        query = BoardQueryBase(Product.ANY)
         boards = []
         try:
-            for port, mpfshell in cls.iter_mpshell(query):
-                if isinstance(mpfshell, str):
-                    # This indicates that the port could not be opened and 'mpfshell' contains the error text.
-                    print(f'*** {port}: {mpfshell}', file=f)
+            for port in serial.tools.list_ports.comports():
+                try:
+                    mpfshell = mp.micropythonshell.MicropythonShell(str_port=port.device)
+                except Exception as e:
+                    print(f'*** {port}: {e}', file=f)
                     continue
-                identification = cls.read_identification(mpfshell)
+
+                identification = BoardQueryBase.read_identification(mpfshell)
                 board = Board(port, mpfshell, identification)
                 boards.append(board)
 
@@ -218,37 +206,62 @@ class BoardQueryBase:
             for board in boards:
                 board.close()
 
-    @classmethod
-    def get_identification(cls, queries):
+    @staticmethod
+    def get_identification(queries):
         for q in queries:
             assert isinstance(q, BoardQueryBase)
             assert isinstance(q.identification, str)
 
         return ', '.join([q.identification for q in queries])
 
-    @classmethod
-    def connect(cls, queries):
+    @staticmethod
+    def connect(queries, exactly_once=True):
         assert isinstance(queries, list)
-        assert isinstance(cls.get_identification(queries), str)
-        queries = queries.copy()
-        queries_success = []
-        for port, mpfshell in cls.iter_mpshell(queries[0]):
-            if isinstance(mpfshell, str):
-                # A error message
-                continue
-            identification = cls.read_identification(mpfshell)
+        assert isinstance(BoardQueryBase.get_identification(queries), str)
+
+        mpfshells_openend = []
+        for port in serial.tools.list_ports.comports():
+            mpfshell = None
+            identification = None
+            com_port_done = False
             for query in queries:
-                if query.select_identification(identification):
-                    query.board = Board(port, mpfshell, identification)
-                    queries.remove(query)
-                    queries_success.append(query)
-            if len(queries) == 0:
-                # All micropython boards found
-                return True
-        # board not found
+                if query.select_pyserial(port):
+                    if mpfshell is None:
+                        try:
+                            mpfshell = mp.micropythonshell.MicropythonShell(str_port=port.device)
+                            mpfshells_openend.append(mpfshell)
+                        except Exception as e:
+                            print(f"{e}")
+                            # We can not connect: Stop searching for this com port
+                            com_port_done = True
+                            break
+
+                    if identification is None:
+                        identification = BoardQueryBase.read_identification(mpfshell)
+                    if query.select_identification(identification):
+                        if query.matching_boards_found == 0:
+                            query.board = Board(port, mpfshell, identification)
+                        query.matching_boards_found += 1
+                        break
+
+            if com_port_done:
+                break
+
+        all_queries_satisfied = True
+        for query in queries:
+            if query.matching_boards_found == 0:
+                all_queries_satisfied = False
+            if exactly_once:
+                if query.matching_boards_found > 1:
+                    raise BoardqueryException(f"Boardquery '{query.identification}' matches {query.matching_boards_found} times.")
+        if all_queries_satisfied:
+            # All micropython boards found
+            return True
+
+        # At lease one query is not satisfied
         # free allocated com-interfaces
-        for query_success in queries_success:
-            query_success.board.close()
+        for mpfshell_open in mpfshells_openend:
+            mpfshell_open.close()
         return False
 
 
@@ -330,7 +343,7 @@ def Connect(list_queries):
         msg = f'Pyboards not found! Query={BoardQueryBase.get_identification(list_queries)}'
         print(f'ERROR: {msg}')
         BoardQueryBase.print_all()
-        raise Exception(msg)
+        raise BoardqueryException(msg)
 
 
 def ConnectPyboard(hwtype=None, product: Product=Product.ANY):
@@ -340,7 +353,7 @@ def ConnectPyboard(hwtype=None, product: Product=Product.ANY):
         msg = f'Pyboard of HWTYPE={hwtype} not found!'
         print(f'ERROR: {msg}')
         BoardQueryBase.print_all()
-        raise Exception(msg)
+        raise BoardqueryException(msg)
     return query.board
 
 
@@ -351,18 +364,18 @@ def ConnectComport(comport: str=None, product: Product=Product.ANY):
         msg = f'Pyboard with comport "{comport}" and product "{product.name}" not found!'
         print(f'ERROR: {msg}')
         BoardQueryBase.print_all()
-        raise Exception(msg)
+        raise BoardqueryException(msg)
     return query.board
 
 
-def ConnectHwtypeSerial(hwtype: str=None, hwserial: str=None, product: Product=Product.ANY):
+def ConnectHwtypeSerial(hwtype: str=None, hwserial: str=None, product: Product=Product.ANY, exactly_once=True):
     query = BoardQueryHwtypeSerial(product=product, hwtype=hwtype, hwserial=hwserial)
-    found = BoardQueryBase.connect([query])
+    found = BoardQueryBase.connect([query], exactly_once=exactly_once)
     if not found:
         msg = f'{product} not found: {query.identification}'
         print(f'ERROR: {msg}')
         BoardQueryBase.print_all()
-        raise Exception(msg)
+        raise BoardqueryException(msg)
     return query.board
 
 
@@ -379,8 +392,14 @@ def example_B():
     Connect([compact, scanner])
     print('done')
 
+def example_C():
+    print('start')
+    board = ConnectHwtypeSerial(product=Product.Pyboard, hwtype='compact_2012', hwserial='20000101_01')
+    print('done')
+
 def main():
     BoardQueryBase.print_all()
+    example_C()
 
 if __name__ == "__main__":
     main()
