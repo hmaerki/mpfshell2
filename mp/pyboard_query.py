@@ -216,14 +216,52 @@ class BoardQueryBase:
 
     @staticmethod
     def connect(queries, exactly_once=True):
+        '''
+        Loop over all ports
+            Find the queries satisfied for this port.
+            Update:
+                query.port  (set to mpfshell)
+                query.matching_boards_found  (increment when satisfied)
+        'connect' succeeds if
+            every query.matching_boards_found >= 1
+            if exactly_once:
+                every query.matching_boards_found == 1
+        '''
         assert isinstance(queries, list)
         assert isinstance(BoardQueryBase.get_identification(queries), str)
 
-        mpfshells_openend = []
-        for port in serial.tools.list_ports.comports():
+        def find_query(str_port):
+            for query in queries:
+                if query.board is None:
+                    continue
+                if query.board.mpfshell.str_port == str_port:
+                    return query
+            return None
+
+        def free_mpfshells(mpfshells_openend, skip_satisfied):
+            # free allocated com-interfaces
+            for mpfshell_open in mpfshells_openend:
+                if skip_satisfied:
+                    query = find_query(mpfshell_open.str_port)
+                    if query is not None:
+                        # Watch out to not close mpfshells which satisfied a query
+                        continue
+                mpfshell_open.close()
+
+        def prepare():
+            for query in queries:
+                query.board = None
+                query.matching_boards_found = 0
+
+        def find_matching_queries(mpfshells_openend, port):
+            ''''
+            Try to open a port, try to read the identification.
+            Update
+                query.port
+                query.matching_boards_found
+            '''
             mpfshell = None
             identification = None
-            com_port_done = False
             for query in queries:
                 if query.select_pyserial(port):
                     if mpfshell is None:
@@ -233,36 +271,35 @@ class BoardQueryBase:
                         except Exception as e:
                             print(f"{e}")
                             # We can not connect: Stop searching for this com port
-                            com_port_done = True
-                            break
+                            return
 
                     if identification is None:
                         identification = BoardQueryBase.read_identification(mpfshell)
                     if query.select_identification(identification):
-                        if query.matching_boards_found == 0:
+                        if query.board is None:
                             query.board = Board(port, mpfshell, identification)
                         query.matching_boards_found += 1
-                        break
 
-            if com_port_done:
-                break
-
-        all_queries_satisfied = True
-        for query in queries:
-            if query.matching_boards_found == 0:
-                all_queries_satisfied = False
-            if exactly_once:
-                if query.matching_boards_found > 1:
-                    raise BoardqueryException(f"Boardquery '{query.identification}' matches {query.matching_boards_found} times.")
-        if all_queries_satisfied:
-            # All micropython boards found
+        def evaluate_satisfied(mpfshells_openend):
+            for query in queries:
+                if query.matching_boards_found == 0:
+                    return False
+                if exactly_once:
+                    if query.matching_boards_found > 1:
+                        free_mpfshells(mpfshells_openend, skip_satisfied=False)
+                        raise BoardqueryException(f"Boardquery '{query.identification}' matches {query.matching_boards_found} times.")
             return True
 
-        # At lease one query is not satisfied
-        # free allocated com-interfaces
-        for mpfshell_open in mpfshells_openend:
-            mpfshell_open.close()
-        return False
+        prepare()
+
+        mpfshells_openend = []
+        for port in serial.tools.list_ports.comports():
+            find_matching_queries(mpfshells_openend, port)
+
+        all_queries_satisfied = evaluate_satisfied(mpfshells_openend)
+
+        free_mpfshells(mpfshells_openend, skip_satisfied=all_queries_satisfied)
+        return all_queries_satisfied
 
 
 class BoardQueryPyboard(BoardQueryBase):
