@@ -22,7 +22,11 @@ def main():
     for i, firmware in enumerate(list_firmwares):
         print(f'  [{i}] {firmware.name}')
     selected = input('Which firmware do you want to program? ')
-    firmware_filename = list_firmwares[int(selected)]
+    try:
+        selected = int(selected)
+    except ValueError:
+        selected = 0
+    firmware_filename = list_firmwares[selected]
 
     elements = pydfu.read_dfu_file(str(firmware_filename))
     if not elements:
