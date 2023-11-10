@@ -26,16 +26,13 @@ class PyboardError(BaseException):
 
 class Pyboard:
     def __init__(self, conbase):
-
         self.con = conbase
 
     def close(self):
-
         if self.con is not None:
             self.con.close()
 
     def read_until(self, min_num_bytes, ending, timeout=10, data_consumer=None):
-
         to_read = max(min_num_bytes, len(ending))
         data = self.con.read(to_read)
         if data_consumer:
@@ -53,7 +50,6 @@ class Pyboard:
         return data
 
     def enter_raw_repl(self):
-
         time.sleep(0.5)  # allow some time for board to reset
         self.con.write(b"\r\x03\x03")  # ctrl-C twice: interrupt any running program
 
@@ -64,7 +60,6 @@ class Pyboard:
             n = self.con.inWaiting()
 
         if self.con.survives_soft_reset():
-
             self.con.write(b"\r\x01")  # ctrl-A: enter raw REPL
             data = self.read_until(1, b"raw REPL; CTRL-B to exit\r\n>")
 
@@ -86,7 +81,6 @@ class Pyboard:
                 raise PyboardError("could not enter raw repl")
 
         else:
-
             self.con.write(b"\r\x01")  # ctrl-A: enter raw REPL
             data = self.read_until(1, b"raw REPL; CTRL-B to exit\r\n")
 
@@ -98,7 +92,6 @@ class Pyboard:
         self.con.write(b"\r\x02")  # ctrl-B: enter friendly REPL
 
     def follow(self, timeout, data_consumer=None):
-
         # wait for normal output
         data = self.read_until(1, b"\x04", timeout=timeout, data_consumer=data_consumer)
         if not data.endswith(b"\x04"):
@@ -115,7 +108,6 @@ class Pyboard:
         return data, data_err
 
     def exec_raw_no_follow(self, command):
-
         if isinstance(command, bytes):
             command_bytes = command
         else:
@@ -133,7 +125,9 @@ class Pyboard:
         # check if we could exec command
         data = self.read_until(2, b"OK", timeout=0.5)
         if data != b"OK":
-            raise PyboardError(f'Could not exec command "{command}". Instead of "OK" got "{data}"!')
+            raise PyboardError(
+                f'Could not exec command "{command}". Instead of "OK" got "{data}"!'
+            )
 
     def exec_raw(self, command, timeout=10, data_consumer=None):
         self.exec_raw_no_follow(command)
@@ -147,7 +141,7 @@ class Pyboard:
     def exec_(self, command):
         ret, ret_err = self.exec_raw(command)
         if ret_err:
-             raise PyboardError("exception", ret, ret_err)
+            raise PyboardError("exception", ret, ret_err)
         return ret
 
     def execfile(self, filename):
