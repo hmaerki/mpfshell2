@@ -15,8 +15,9 @@ import serial.tools.list_ports
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).absolute().parent
 
 FILENAME_IDENTIFICATION = "config_identification.py"
+FILENAME_SECRETS = "config_secrets.py"
 
-FILES_TO_SKIP = ("boot.py", "pybcdc.inf", "README.txt", FILENAME_IDENTIFICATION)
+FILES_TO_SKIP = ("boot.py", "pybcdc.inf", "README.txt", FILENAME_IDENTIFICATION, FILENAME_SECRETS)
 
 _PORT_PATTERN = r"^COM\d+$" if platform.system() == "Windows" else r"/dev/tty.*$"
 _RE_PORT = re.compile(_PORT_PATTERN)
@@ -126,7 +127,7 @@ class MicropythonShell:
         files = eval(files)
         return files
 
-    def __do_folder_diff(self, directory_local, FILES_TO_SKIP):
+    def __do_folder_diff(self, directory_local, files_to_skip):
         """
         Compare the remote and local directory listing, compare the sha256.
         """
@@ -142,10 +143,6 @@ class MicropythonShell:
             # print(f'  {sha256_remote}: {filename_remote}')
             filename_local = pathlib.Path(directory_local).joinpath(filename_remote)
             if not filename_local.exists():
-                if FILES_TO_SKIP is None:
-                    continue
-                if filename_remote in FILES_TO_SKIP:
-                    continue
                 files_to_delete.add(filename_remote)
                 continue
             sha256_local = self.__get_hash_local(filename_local)
@@ -154,16 +151,20 @@ class MicropythonShell:
                 files_to_download.remove(filename_remote)
                 continue
 
+        if files_to_skip is not None:
+            for filename in files_to_skip:
+                files_to_delete.discard(filename)
+                files_to_download.discard(filename)
         return files_to_delete, files_to_download
 
-    def sync_folder(self, directory_local, FILES_TO_SKIP=FILES_TO_SKIP):
+    def sync_folder(self, directory_local, files_to_skip=FILES_TO_SKIP):
         """
         Update the pyboard filesystem according to 'directory_local'.
-        If FILES_TO_SKIP is a list, all these files will not be deleted.
-        If FILES_TO_SKIP is None, no files will be deleted at all.
+        If files_to_skip is a list, all these files will not be deleted.
+        If files_to_skip is None, no files will be deleted at all.
         """
         assert self.is_connected
-        assert isinstance(FILES_TO_SKIP, (list, tuple, type(None)))
+        assert isinstance(files_to_skip, (list, tuple, type(None)))
         if isinstance(directory_local, str):
             directory_local = pathlib.Path(directory_local)
 
@@ -174,7 +175,7 @@ class MicropythonShell:
             return
 
         files_to_delete, files_to_download = self.__do_folder_diff(
-            directory_local, FILES_TO_SKIP
+            directory_local, files_to_skip
         )
 
         for file_to_download in files_to_download:
@@ -194,7 +195,7 @@ class MicropythonShell:
         self.soft_reset()
 
         files_to_delete, files_to_download = self.__do_folder_diff(
-            directory_local, FILES_TO_SKIP
+            directory_local, files_to_skip
         )
         if (len(files_to_delete) > 0) or (len(files_to_download) > 0):
             print(
