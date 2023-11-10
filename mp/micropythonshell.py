@@ -1,3 +1,4 @@
+import platform
 import re
 import sys
 import time
@@ -17,6 +18,9 @@ FILENAME_IDENTIFICATION = "config_identification.py"
 
 FILES_TO_SKIP = ("boot.py", "pybcdc.inf", "README.txt", FILENAME_IDENTIFICATION)
 
+_PORT_PATTERN = r"^COM\d+$" if platform.system() == "Windows" else r"/dev/tty.*$"
+_RE_PORT = re.compile(_PORT_PATTERN)
+
 
 class MicropythonShell:
     def __init__(self, str_port=None):
@@ -28,9 +32,9 @@ class MicropythonShell:
         else:
             str_port = MicropythonShell.get_first_port()
             print(f"Found {str_port}")
-        if re.match(r"^COM\d+$", str_port) is None:
+        if _RE_PORT.match(str_port) is None:
             raise Exception(
-                'Expected a string like "COM5", but got "{}"'.format(str_port)
+                f'Expected a string like "{_RE_PORT}", but got "{str_port}"'
             )
         self.str_port = str_port
 
