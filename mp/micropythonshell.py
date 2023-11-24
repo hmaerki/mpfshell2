@@ -6,6 +6,7 @@ import pathlib
 import hashlib
 import logging
 import argparse
+from typing import Set
 
 import mp
 import mp.mpfshell
@@ -14,10 +15,14 @@ import serial.tools.list_ports
 
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).absolute().parent
 
-FILENAME_IDENTIFICATION = "config_identification.py"
-FILENAME_SECRETS = "config_secrets.py"
+RE_CONFIG_FILENAME = re.compile("^config_.*$")
+"""
+This will match for example:
+  config_identification.py
+  config_secrets.py
+"""
 
-FILES_TO_SKIP = ("boot.py", "pybcdc.inf", "README.txt", FILENAME_IDENTIFICATION, FILENAME_SECRETS)
+FILES_TO_SKIP = ("boot.py", "pybcdc.inf", "README.txt", RE_CONFIG_FILENAME)
 
 _PORT_PATTERN = r"^COM\d+$" if platform.system() == "Windows" else r"/dev/tty.*$"
 _RE_PORT = re.compile(_PORT_PATTERN)
@@ -132,10 +137,8 @@ class MicropythonShell:
         Compare the remote and local directory listing, compare the sha256.
         """
         assert isinstance(directory_local, pathlib.Path)
-        files_to_delete = set()
-        files_to_download = set(
-            [f.name for f in directory_local.glob("*") if f.is_file()]
-        )
+        files_to_delete :Set[str] = set()
+        files_to_download :Set[str] = {f.name for f in directory_local.glob("*") if f.is_file()}
 
         files = self.__up_listfiles_remote()
         for filename_remote, sha256_remote in files:
@@ -151,10 +154,21 @@ class MicropythonShell:
                 files_to_download.remove(filename_remote)
                 continue
 
-        if files_to_skip is not None:
+        def discard_files_to_skip(set_files: Set[str]) -> None:
             for filename in files_to_skip:
-                files_to_delete.discard(filename)
-                files_to_download.discard(filename)
+                if isinstance(filename, str):
+                    if filename in set_files:
+                        set_files.discard(filename)
+                    continue
+                if isinstance(filename, re.Pattern):
+                    for f in list(set_files):
+                        if filename.match(f):
+                            set_files.discard(f)
+                    continue
+                assert False, f"Unkown type {type(filename)} for {filename!r}!"
+        discard_files_to_skip(files_to_delete)
+        discard_files_to_skip(files_to_download)
+
         return files_to_delete, files_to_download
 
     def sync_folder(self, directory_local, files_to_skip=FILES_TO_SKIP):
@@ -164,7 +178,7 @@ class MicropythonShell:
         If files_to_skip is None, no files will be deleted at all.
         """
         assert self.is_connected
-        assert isinstance(files_to_skip, (list, tuple, type(None)))
+        assert isinstance(files_to_skip, (list, tuple))
         if isinstance(directory_local, str):
             directory_local = pathlib.Path(directory_local)
 
