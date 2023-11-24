@@ -137,8 +137,17 @@ class MicropythonShell:
         Compare the remote and local directory listing, compare the sha256.
         """
         assert isinstance(directory_local, pathlib.Path)
-        files_to_delete :Set[str] = set()
-        files_to_download :Set[str] = {f.name for f in directory_local.glob("*") if f.is_file()}
+
+        def get_files_to_download() -> Set[str]:
+            "Recursively list files."
+            return {
+                str(f.relative_to(directory_local))
+                for f in directory_local.rglob("*")
+                if f.is_file()
+            }
+
+        files_to_download = get_files_to_download()
+        files_to_delete: Set[str] = set()
 
         files = self.__up_listfiles_remote()
         for filename_remote, sha256_remote in files:
@@ -166,10 +175,11 @@ class MicropythonShell:
                             set_files.discard(f)
                     continue
                 assert False, f"Unkown type {type(filename)} for {filename!r}!"
+
         discard_files_to_skip(files_to_delete)
         discard_files_to_skip(files_to_download)
 
-        return files_to_delete, files_to_download
+        return sorted(files_to_delete), sorted(files_to_download)
 
     def sync_folder(self, directory_local, files_to_skip=FILES_TO_SKIP):
         """
@@ -192,14 +202,28 @@ class MicropythonShell:
             directory_local, files_to_skip
         )
 
+        # Delete files
+        for file_to_delete in files_to_delete:
+            print(f"  delete {file_to_delete}")
+            self.MpFileExplorer.rm(file_to_delete)
+
+        # List remote directories and create missing directories.
+        directories_remote = set(self.MpFileExplorer.ls(add_files=False, add_dirs=True))
+        for file_to_download in files_to_download:
+            directory, _, _ = file_to_download.rpartition("/")
+            if directory == "":
+                continue
+            if directory in directories_remote:
+                continue
+            print(f"  create directory: {directory}")
+            self.MpFileExplorer.md(directory)
+            directories_remote.add(directory)
+
+        # Download files
         for file_to_download in files_to_download:
             filename_local = f"{directory_local}/{file_to_download}"
             print(f"  downloading: {file_to_download}")
             self.MpFileExplorer.put(src=filename_local, dst=file_to_download)
-
-        for file_to_delete in files_to_delete:
-            print(f"  delete {file_to_delete}")
-            self.MpFileExplorer.rm(file_to_delete)
 
         if (len(files_to_delete) == 0) and (len(files_to_download) == 0):
             print(f'  Directory "{directory_local}": already synchronized')

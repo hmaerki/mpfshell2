@@ -14,12 +14,19 @@ def up_listfiles():
                     return ubinascii.hexlify(sha.digest())
                 sha.update(data)
 
-    f = []
-    for filetuple in uos.ilistdir():
-        filename = filetuple[0]
-        filetype = filetuple[1]
-        if filetype != 0x8000:
-            # Not a file
-            continue
-        f.append((filename, sha256(filename)))
-    return f
+    def list_dir(path: str):
+        "Recursive listdir"
+        for filetuple in uos.ilistdir(path):
+            filename = path + filetuple[0]
+            filetype = filetuple[1]
+            if filetype == 0x8000:
+                # a file
+                yield (filename, sha256(filename))
+                continue
+            if filetype == 0x4000:
+                # a directory
+                yield from list_dir(filename + "/")
+                continue
+            assert False, filename
+
+    return list(list_dir(""))
