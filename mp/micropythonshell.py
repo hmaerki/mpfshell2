@@ -1,17 +1,17 @@
+import argparse
+import hashlib
+import logging
+import pathlib
 import platform
 import re
 import sys
 import time
-import pathlib
-import hashlib
-import logging
-import argparse
-from typing import Set
+from typing import List, Set
+
+import serial.tools.list_ports
 
 import mp
 import mp.mpfshell
-import serial.tools.list_ports
-
 
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).absolute().parent
 
@@ -23,6 +23,7 @@ This will match for example:
 """
 
 FILES_TO_SKIP = ("boot.py", "pybcdc.inf", "README.txt", RE_CONFIG_FILENAME)
+DIRECTORIES_TO_SKIP = ("__pycache__",)
 
 _PORT_PATTERN = r"^COM\d+$" if platform.system() == "Windows" else r"/dev/tty.*$"
 _RE_PORT = re.compile(_PORT_PATTERN)
@@ -140,11 +141,19 @@ class MicropythonShell:
 
         def get_files_to_download() -> Set[str]:
             "Recursively list files."
-            return {
-                str(f.relative_to(directory_local))
+
+            def select_file(f: pathlib.Path) -> bool:
+                for parent in f.parents:
+                    if parent.name in DIRECTORIES_TO_SKIP:
+                        return False
+                return True
+
+            files_relative = (
+                f.relative_to(directory_local)
                 for f in directory_local.rglob("*")
                 if f.is_file()
-            }
+            )
+            return {str(f) for f in files_relative if select_file(f)}
 
         files_to_download = get_files_to_download()
         files_to_delete: Set[str] = set()
@@ -208,7 +217,19 @@ class MicropythonShell:
             self.MpFileExplorer.rm(file_to_delete)
 
         # List remote directories and create missing directories.
-        directories_remote = set(self.MpFileExplorer.ls(add_files=False, add_dirs=True))
+        directories_remote: Set[str] = set()
+
+        def directories_remote_recursively(parent: str) -> None:
+            assert not parent.startswith("/")
+            for _directory in self.MpFileExplorer.ls(add_files=False, add_dirs=True):
+                directory = parent + _directory
+                assert not directory.startswith("/")
+                directories_remote.add(directory)
+                self.MpFileExplorer.cd("/" + directory)
+                directories_remote_recursively(directory + "/")
+                self.MpFileExplorer.cd("/")
+
+        directories_remote_recursively("")
         for file_to_download in files_to_download:
             directory, _, _ = file_to_download.rpartition("/")
             if directory == "":
