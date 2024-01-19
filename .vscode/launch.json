@@ -1,0 +1,42 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: util_serial_list",
+            "type": "python",
+            "request": "launch",
+            "module": "mp.util_serial_list",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: util_serial_arg",
+            "type": "python",
+            "request": "launch",
+            "module": "mp.util_serial_arg",
+            "args": ["--vid=2E8A"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: util_serial_dump",
+            "type": "python",
+            "request": "launch",
+            "module": "mp.util_serial",
+            "args": ["--vid=2E8A"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}

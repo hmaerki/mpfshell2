@@ -64,4 +64,6 @@ target/
 venv
 *.swp
 MANIFEST
-.vscode
+# .vscode
+
+dump_uart_*.txt

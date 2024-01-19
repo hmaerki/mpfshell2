@@ -30,5 +30,8 @@ setup(
         "pyboard_query=mp.pyboard_query:main",
         "pyboard_pydfu=mp.firmware.pydfu:main",
         "pyboard_update=mp.firmware.update:main",
+        "serial_list=mp.util_serial_list:main",
+        "serial_arg=mp.util_serial_arg:main",
+        "serial_dump=mp.util_serial:main",
     ]},
 )
