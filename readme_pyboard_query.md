@@ -176,3 +176,36 @@ Board Query COM8
   config_identification.py.HWVERSION: 20201120
   config_identification.py.HWSERIAL: 20201120_01
 ```
+
+## Linux
+
+If you have not sufficient persmissions to open `/dev/ttyACM0`, you might need to add youself to the dialout group:
+
+```bash
+sudo usermod -a -G dialout $USER 
+```
+
+## Serial line helper function
+
+* `serial_list`
+
+List all usb serial ports.
+
+* `serial_arg`
+
+This method is intended to be used in commands like:
+
+    `minicom --baudrate 115200 --device /dev/ttyUSB0`
+
+Instead of hardcoding `/dev/ttyUSB0` the vendor/product id may be used:
+
+    `minicom --baudrate 115200 --device `serial_arg --vid=2E8A`
+
+
+* `serial_dump`
+
+Find a usb connected uart.
+Open and dump input to stdout.
+Follow when the uart dissapears and appears again. This may happen when the usb device powercycles.
+Optionally append the output to a file.
+Optionally prepend a timestamp in front of every line.
