@@ -9,6 +9,7 @@ import argparse
 import sys
 import time
 from typing import List
+import dataclasses
 
 import serial
 from serial.tools import list_ports
@@ -43,9 +44,28 @@ def print_ports(file):
         )
 
 
+@dataclasses.dataclass(frozen=True)
+class FindArguments:
+    vid: int = None
+    pid: int = None
+    serial: str = None
+    n: int = 1
+    """
+    0 is the first occurence
+    1 is the second occurence
+    """
+
+
 class ArgumentWrapperFind:
     def __init__(self, args: argparse.Namespace):
-        self.args = args
+        vid = None
+        pid = None
+        if args.vid is not None:
+            vid = int(args.vid, base=16)
+        if args.pid is not None:
+            pid = int(args.pid, base=16)
+
+        self.args = FindArguments(vid=vid, pid=pid, serial=args.serial, n=args.n)
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
@@ -55,24 +75,24 @@ class ArgumentWrapperFind:
         parser.add_argument("--n", default=0, help="select n' occurence")
 
 
-def find_serial_port(args_find: ArgumentWrapperFind) -> str:
+def find_serial_port(args: FindArguments) -> str:
     n = 0
     for port in serial_ports_ordered():
-        if args_find.args.vid is not None:
-            if int(args_find.args.vid, base=16) != port.vid:
+        if args.vid is not None:
+            if args.vid != port.vid:
                 continue
-        if args_find.args.pid is not None:
-            if int(args_find.args.pid, base=16) != port.pid:
+        if args.pid is not None:
+            if args.pid != port.pid:
                 continue
-        if args_find.args.serial is not None:
-            if args_find.args.serial != port.serial_number:
+        if args.serial is not None:
+            if args.serial != port.serial_number:
                 continue
-        if n < args_find.args.n:
+        if n < args.n:
             n += 1
             continue
         return port.device
 
-    raise SerialPortNotFoundException(f"No serial interface found for {args_find.args}")
+    raise SerialPortNotFoundException(f"No serial interface found for {args}")
 
 
 class ArgumentWrapperOpen:
@@ -151,16 +171,15 @@ class DumpSerialPort:
         self._args_open = ArgumentWrapperOpen(args)
         self._args_logfile = ArgumentWrapperLogfile(args)
 
-
     def dump_serial_port(self) -> None:
         try:
-            find_serial_port(self._args_find)
+            find_serial_port(self._args_find.args)
         except SerialPortNotFoundException:
             pass
         while True:
             logfile = None
             try:
-                port = find_serial_port(self._args_find)
+                port = find_serial_port(self._args_find.args)
             except SerialPortNotFoundException:
                 time.sleep(0.5)
                 print(".", end="")

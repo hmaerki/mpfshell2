@@ -27,7 +27,8 @@ def main():
     args = parser.parse_args()
 
     try:
-        device = find_serial_port(args_find=ArgumentWrapperFind(args))
+        awf =ArgumentWrapperFind(args)
+        device = find_serial_port(awf.args)
         print(device)
     except SerialPortNotFoundException:
         print(f"No serial port found for {args}", file=sys.stderr)
