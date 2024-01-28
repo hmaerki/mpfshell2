@@ -6,7 +6,7 @@ import platform
 import re
 import sys
 import time
-from typing import List, Set
+from typing import Set
 
 import serial.tools.list_ports
 
@@ -190,7 +190,29 @@ class MicropythonShell:
 
         return sorted(files_to_delete), sorted(files_to_download)
 
-    def sync_folder(self, directory_local, files_to_skip=FILES_TO_SKIP):
+    def rp2_disable_watchdog(self):
+        """
+        If the watchdog is enabled, we might fail downloading files are
+        do debugging later. Therefor, disable the watchdog if the
+        platform allows to do so.
+        """
+        if self.MpFileExplorer.sysname != "rp2":
+            return
+
+        print("rp2: Disabling watchdog")
+
+        # Stop/disable the RP2040 watchdog timer
+        # 0x40058000 = WATCHDOG_CTRL register, bit 30 is the ENABLE bit
+        cmd = "import machine; machine.mem32[0x40058000] = machine.mem32[0x40058000] & ~(1 << 30)"
+
+        result = self.MpFileExplorer.exec(cmd)
+        assert (
+            len(result) == 0
+        ), f"Failed to reset the watchdog on rp2: '{cmd}': {result}"
+
+    def sync_folder(
+        self, directory_local, files_to_skip=FILES_TO_SKIP, disable_off_watchdog=True
+    ):
         """
         Update the pyboard filesystem according to 'directory_local'.
         If files_to_skip is a list, all these files will not be deleted.
@@ -198,6 +220,10 @@ class MicropythonShell:
         """
         assert self.is_connected
         assert isinstance(files_to_skip, (list, tuple))
+
+        if disable_off_watchdog:
+            self.rp2_disable_watchdog()
+
         if isinstance(directory_local, str):
             directory_local = pathlib.Path(directory_local)
 
