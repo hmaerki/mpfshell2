@@ -153,7 +153,12 @@ class MicropythonShell:
                 for f in directory_local.rglob("*")
                 if f.is_file()
             )
-            return {str(f) for f in files_relative if select_file(f)}
+
+            def unix_path(f):
+                # 'umodbus\\common.py' -> 'umodbus/common.py'
+                return "/".join(f.parts)
+
+            return {unix_path(f) for f in files_relative if select_file(f)}
 
         files_to_download = get_files_to_download()
         files_to_delete: Set[str] = set()
@@ -169,7 +174,7 @@ class MicropythonShell:
             sha256_local = self.__get_hash_local(filename_local)
             if sha256_remote == sha256_local:
                 # File equal
-                files_to_download.remove(filename_remote)
+                files_to_download.discard(filename_remote)
                 continue
 
         def discard_files_to_skip(set_files: Set[str]) -> None:
@@ -276,7 +281,7 @@ class MicropythonShell:
             print(f'  Directory "{directory_local}": already synchronized')
             return
 
-        print(f"  soft reset (filessystem was touched, modules must be reloaded)")
+        print("  soft reset (filessystem was touched, modules must be reloaded)")
         self.soft_reset()
 
         files_to_delete, files_to_download = self.__do_folder_diff(
