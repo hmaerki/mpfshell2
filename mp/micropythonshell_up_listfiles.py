@@ -16,7 +16,12 @@ def up_listfiles():
 
     def list_dir(path: str):
         "Recursive listdir"
-        for filetuple in uos.ilistdir(path):
+        try:
+            filetuples = uos.ilistdir(path)
+        except OSError:
+            # Some directories fail, for example 'System Volume Information/'
+            return
+        for filetuple in filetuples:
             filename = path + filetuple[0]
             filetype = filetuple[1]
             if filetype == 0x8000:

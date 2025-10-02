@@ -259,6 +259,8 @@ class MicropythonShell:
         def directories_remote_recursively(parent: str) -> None:
             assert not parent.startswith("/")
             for _directory in self.MpFileExplorer.ls(add_files=False, add_dirs=True):
+                if _directory == "System Volume Information":
+                    continue
                 directory = parent + _directory
                 assert not directory.startswith("/")
                 directories_remote.add(directory)

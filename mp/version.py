@@ -24,6 +24,6 @@
 
 # Commit of version '100.9.20 2023-12-23' has been lost...
 
-FULL = '100.9.24'
+FULL = '100.9.25'
 
 MAJOR, MINOR, PATCH = FULL.split(".")
