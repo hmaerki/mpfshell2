@@ -35,7 +35,7 @@ import subprocess
 
 from mp.conbase import ConError
 from mp.conserial import ConSerial
-from mp.contelnet import ConTelnet
+# from mp.contelnet import ConTelnet
 from mp.conwebsock import ConWebsock
 from mp.pyboard import Pyboard, PyboardError
 from mp.retry import retry
@@ -117,23 +117,23 @@ class MpFileExplorer(Pyboard):
             timeout = 0.1 # 100 ms timeout in serial.read()
             con = ConSerial(port=port, baudrate=baudrate, reset=self.reset, timeout=timeout)
 
-        elif proto.strip(" ") == "tn":
+        # elif proto.strip(" ") == "tn":
 
-            host = params[0].strip(" ")
+        #     host = params[0].strip(" ")
 
-            if len(params) > 1:
-                login = params[1].strip(" ")
-            else:
-                print("")
-                login = input("telnet login : ")
+        #     if len(params) > 1:
+        #         login = params[1].strip(" ")
+        #     else:
+        #         print("")
+        #         login = input("telnet login : ")
 
-            if len(params) > 2:
-                passwd = params[2].strip(" ")
-            else:
-                passwd = getpass.getpass("telnet passwd: ")
+        #     if len(params) > 2:
+        #         passwd = params[2].strip(" ")
+        #     else:
+        #         passwd = getpass.getpass("telnet passwd: ")
 
-            # print("telnet connection to: %s, %s, %s" % (host, login, passwd))
-            con = ConTelnet(ip=host, user=login, password=passwd)
+        #     # print("telnet connection to: %s, %s, %s" % (host, login, passwd))
+        #     con = ConTelnet(ip=host, user=login, password=passwd)
 
         elif proto.strip(" ") == "ws":
 
