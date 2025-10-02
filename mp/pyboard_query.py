@@ -46,8 +46,8 @@ class Product(Enum):
         return None
 
 
-for product in Product.all():
-    product.value.name = product.name
+for _product in Product.all():
+    _product.value.name = _product.name
 
 
 @dataclasses.dataclass

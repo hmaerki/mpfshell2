@@ -18,5 +18,5 @@ pip install --index-url https://test.pypi.org/simple/ mpfshell2
 ## Upload
 
 ```python
-twine upload dist/* -r pypi
+uvx twine==6.2.0 upload dist/* -r pypi
 ```

@@ -13,7 +13,13 @@ import serial.tools.list_ports
 import mp
 import mp.mpfshell
 
+# This is required for backward compatibility (versions <= 100.9.17)
+FILENAME_IDENTIFICATION = "config_identification.py"
+
 DIRECTORY_OF_THIS_FILE = pathlib.Path(__file__).absolute().parent
+
+
+ 
 
 RE_CONFIG_FILENAME = re.compile("^config_.*$")
 """
